@@ -1,286 +1,143 @@
-export const downloadResumeAsPDF = () => {
+export const downloadResumeAsPDF = async () => {
   const resumeElement = document.getElementById("resume-content")
   if (!resumeElement) {
     alert("Resume content not found. Please make sure you have filled out some information.")
     return
   }
 
-  // Create a clean HTML version for PDF conversion
-  const createCleanHTML = () => {
-    // Clone the resume element
+  try {
+    // Load html2pdf library if not already loaded
+    if (!(window as any).html2pdf) {
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js")
+    }
+
+    // Create a clean version of the resume content
     const clonedElement = resumeElement.cloneNode(true) as HTMLElement
 
-    // Remove all SVG icons and unwanted elements
-    const iconsAndSvgs = clonedElement.querySelectorAll("svg, .lucide, img")
-    iconsAndSvgs.forEach((element) => element.remove())
+    // Remove all unwanted elements
+    const unwantedElements = clonedElement.querySelectorAll("svg, .lucide, img, button, [role='button']")
+    unwantedElements.forEach((el) => el.remove())
 
-    // Get the clean HTML content
-    const cleanHTML = clonedElement.innerHTML
+    // Force all text to be black
+    const allTextElements = clonedElement.querySelectorAll("*")
+    allTextElements.forEach((el: any) => {
+      el.style.color = "#000000"
+      el.style.opacity = "1"
+    })
 
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Resume</title>
-          <style>
-            * {
-              margin: 0;
-              padding: 0;
-              box-sizing: border-box;
-            }
-            
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-              line-height: 1.3;
-              color: #374151;
-              background: white;
-              padding: 0.4in;
-              font-size: 10pt;
-              max-width: 7.5in;
-              margin: 0 auto;
-            }
-            
-            /* Page setup */
-            @page {
-              size: letter;
-              margin: 0.4in;
-            }
-            
-            /* Spacing utilities - Reduced for better fit */
-            .space-y-5 > * + * { margin-top: 1rem; }
-            .space-y-4 > * + * { margin-top: 0.8rem; }
-            .space-y-3 > * + * { margin-top: 0.6rem; }
-            .space-y-2 > * + * { margin-top: 0.4rem; }
-            .space-y-1 > * + * { margin-top: 0.2rem; }
-            .mb-5 { margin-bottom: 1rem; }
-            .mb-4 { margin-bottom: 0.8rem; }
-            .mb-3 { margin-bottom: 0.6rem; }
-            .mb-2 { margin-bottom: 0.4rem; }
-            .mb-1 { margin-bottom: 0.2rem; }
-            .pb-3 { padding-bottom: 0.6rem; }
-            .pb-1 { padding-bottom: 0.2rem; }
-            .mt-1 { margin-top: 0.2rem; }
-            .ml-4 { margin-left: 0.8rem; }
-            
-            /* Typography - Optimized sizes */
-            h1 {
-              font-size: 16pt;
-              font-weight: bold;
-              text-align: center;
-              margin-bottom: 0.4rem;
-              color: #111827;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-            }
-            
-            h2 {
-              font-size: 10pt;
-              font-weight: bold;
-              border-bottom: 1px solid #9ca3af;
-              padding-bottom: 0.2rem;
-              margin-bottom: 0.5rem;
-              color: #111827;
-              text-transform: uppercase;
-              letter-spacing: 0.025em;
-            }
-            
-            h3 {
-              font-size: 8.5pt;
-              font-weight: bold;
-              color: #111827;
-              text-transform: uppercase;
-            }
-            
-            /* Layout utilities - Fixed for PDF */
-            .text-center { text-align: center; }
-            .text-right { text-align: right; }
-            .text-xs { font-size: 8pt; }
-            .text-sm { font-size: 9pt; }
-            
-            .flex { 
-              display: flex; 
-              width: 100%;
-            }
-            .flex-wrap { flex-wrap: wrap; }
-            .justify-center { justify-content: center; }
-            .justify-between { 
-              justify-content: space-between; 
-              align-items: flex-start;
-            }
-            .items-center { align-items: center; }
-            .items-start { align-items: flex-start; }
-            .flex-1 { 
-              flex: 1; 
-              min-width: 0; /* Prevent overflow */
-              padding-right: 0.5rem;
-            }
-            
-            .gap-1 { gap: 0.2rem; }
-            .gap-2 { gap: 0.4rem; }
-            
-            /* Border utilities */
-            .border-b-2 { border-bottom: 2px solid #1f2937; }
-            .border-b { border-bottom: 1px solid #9ca3af; }
-            
-            /* Color utilities */
-            .text-gray-900 { color: #111827; }
-            .text-gray-700 { color: #374151; }
-            .text-gray-600 { color: #4b5563; }
-            
-            /* Font utilities */
-            .font-bold { font-weight: bold; }
-            .font-medium { font-weight: 500; }
-            .italic { font-style: italic; }
-            .uppercase { text-transform: uppercase; }
-            .tracking-wide { letter-spacing: 0.025em; }
-            
-            /* List styling */
-            ul { list-style: none; padding-left: 0; }
-            li { margin-bottom: 0.1rem; line-height: 1.2; }
-            
-            /* Link styling */
-            a { color: #2563eb; text-decoration: none; }
-            
-            /* Hide all icons */
-            svg, .lucide, img { display: none !important; }
-            
-            /* Spacing utilities */
-            .space-y-0\.5 > * + * { margin-top: 0.1rem; }
-            .leading-relaxed { line-height: 1.2; }
-            .leading-tight { line-height: 1.15; }
-            
-            /* Right-aligned content - Fixed for PDF */
-            .text-right {
-              text-align: right;
-              flex-shrink: 0;
-              min-width: fit-content;
-              max-width: 2.5in;
-              word-wrap: break-word;
-            }
-            
-            /* Ensure proper spacing for flex items */
-            .flex > div:last-child {
-              margin-left: 0.5rem;
-              text-align: right;
-              flex-shrink: 0;
-            }
-            
-            /* Header contact info - Better wrapping */
-            .flex-wrap {
-              flex-wrap: wrap;
-              justify-content: center;
-              align-items: center;
-            }
-            
-            .flex-wrap > * {
-              margin: 0 0.2rem;
-            }
-            
-            /* Prevent text overflow */
-            * {
-              word-wrap: break-word;
-              overflow-wrap: break-word;
-            }
-            
-            /* Specific fixes for education and experience sections */
-            .education-item, .experience-item, .project-item {
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-              margin-bottom: 0.5rem;
-              width: 100%;
-            }
-            
-            .education-item .left-content,
-            .experience-item .left-content,
-            .project-item .left-content {
-              flex: 1;
-              padding-right: 0.5rem;
-              min-width: 0;
-            }
-            
-            .education-item .right-content,
-            .experience-item .right-content,
-            .project-item .right-content {
-              flex-shrink: 0;
-              text-align: right;
-              max-width: 2in;
-              font-size: 8pt;
-            }
-            
-            /* Ensure content doesn't exceed page width */
-            .container {
-              max-width: 100%;
-              overflow: hidden;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">${cleanHTML}</div>
-        </body>
-      </html>
-    `
-  }
-
-  // Method 1: Try using html2pdf if available
-  if (typeof window !== "undefined" && (window as any).html2pdf) {
-    const element = document.createElement("div")
-    element.innerHTML = createCleanHTML()
-
-    const opt = {
+    // PDF generation options
+    const options = {
       margin: [0.4, 0.4, 0.4, 0.4],
-      filename: "resume.pdf",
-      image: { type: "jpeg", quality: 0.98 },
+      filename: `Resume_${new Date().toISOString().split("T")[0]}.pdf`,
+      image: {
+        type: "jpeg",
+        quality: 1.0,
+      },
       html2canvas: {
-        scale: 1.5,
+        scale: 2,
         useCORS: true,
-        width: 612, // Letter size width in pixels at 72 DPI
-        windowWidth: 612,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        width: 794, // A4 width in pixels at 96 DPI
+        height: 1123, // A4 height in pixels at 96 DPI
+        scrollX: 0,
+        scrollY: 0,
       },
       jsPDF: {
         unit: "in",
-        format: "letter",
+        format: "a4",
         orientation: "portrait",
         compress: true,
       },
+      pagebreak: {
+        mode: ["avoid-all", "css", "legacy"],
+      },
     }
-    ;(window as any).html2pdf().set(opt).from(element).save()
-    return
+
+    // Generate and download PDF
+    await (window as any).html2pdf().set(options).from(clonedElement).save()
+
+    console.log("PDF downloaded successfully!")
+  } catch (error) {
+    console.error("PDF generation failed:", error)
+
+    // Fallback: Create a simple HTML file download
+    fallbackDownload()
   }
+}
 
-  // Method 2: Use browser's built-in PDF generation with better control
-  const printWindow = window.open("", "_blank", "width=800,height=600")
-  if (!printWindow) {
-    alert("Please allow popups to download your resume as PDF.")
-    return
-  }
+// Fallback download method
+const fallbackDownload = () => {
+  const resumeElement = document.getElementById("resume-content")
+  if (!resumeElement) return
 
-  printWindow.document.write(createCleanHTML())
-  printWindow.document.close()
+  const clonedElement = resumeElement.cloneNode(true) as HTMLElement
 
-  // Wait for content to load, then trigger print
-  printWindow.onload = () => {
-    setTimeout(() => {
-      // Set up print event listeners
-      printWindow.onbeforeprint = () => {
-        // Hide any remaining unwanted elements
-        const unwantedElements = printWindow.document.querySelectorAll('svg, .lucide, img, [class*="watermark"]')
-        unwantedElements.forEach((el) => {
-          if (el.parentNode) {
-            el.parentNode.removeChild(el)
-          }
-        })
-      }
+  // Remove unwanted elements
+  const unwantedElements = clonedElement.querySelectorAll("svg, .lucide, img, button")
+  unwantedElements.forEach((el) => el.remove())
 
-      printWindow.onafterprint = () => {
-        setTimeout(() => {
-          printWindow.close()
-        }, 100)
-      }
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Resume</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; color: #000 !important; }
+    body { 
+      font-family: Arial, sans-serif; 
+      font-size: 12px; 
+      line-height: 1.4; 
+      padding: 20px; 
+      background: white;
+    }
+    h1 { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 10px; text-transform: uppercase; }
+    h2 { font-size: 14px; font-weight: bold; border-bottom: 1px solid #000; margin: 15px 0 8px 0; padding-bottom: 3px; text-transform: uppercase; }
+    h3 { font-size: 12px; font-weight: bold; margin: 8px 0 4px 0; }
+    .flex { display: flex; justify-content: space-between; align-items: flex-start; margin: 5px 0; }
+    .flex-1 { flex: 1; padding-right: 10px; }
+    .text-right { text-align: right; flex-shrink: 0; }
+    .text-center { text-align: center; }
+    .font-bold { font-weight: bold; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 2px 0; }
+    .mb-1 { margin-bottom: 4px; }
+    .mb-2 { margin-bottom: 8px; }
+    .mb-3 { margin-bottom: 12px; }
+    .space-y-2 > * + * { margin-top: 8px; }
+    .space-y-3 > * + * { margin-top: 12px; }
+  </style>
+</head>
+<body>
+  ${clonedElement.innerHTML}
+</body>
+</html>`
 
-      // Trigger print
-      printWindow.print()
-    }, 500)
-  }
+  // Create and download HTML file
+  const blob = new Blob([htmlContent], { type: "text/html" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `Resume_${new Date().toISOString().split("T")[0]}.html`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+// Function to load external scripts
+const loadScript = (src: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) {
+      resolve()
+      return
+    }
+
+    const script = document.createElement("script")
+    script.src = src
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error(`Failed to load script: ${src}`))
+    document.head.appendChild(script)
+  })
 }
